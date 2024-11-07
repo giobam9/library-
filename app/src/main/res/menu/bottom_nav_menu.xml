@@ -1,0 +1,18 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+<item
+    android:id="@+id/navigation_book_list"
+    android:icon="@drawable/baseline_library_books_24"
+    android:title="Список книг" />
+
+<item
+    android:id="@+id/navigation_selected_book"
+    android:icon="@drawable/baseline_book_24"
+    android:title="Выбранная книга" />
+
+<item
+    android:id="@+id/navigation_favorites"
+    android:icon="@drawable/baseline_bookmark_24"
+    android:title="Избранные книги" />
+
+</menu>
