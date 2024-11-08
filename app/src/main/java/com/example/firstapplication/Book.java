@@ -5,9 +5,9 @@ public class Book {
     private String genre;
     private String name;
     private String publicationDate;
-    private String rating;
+    private int rating;
 
-    public Book(String author, String genre, String name, String publicationDate, String rating) {
+    public Book(String author, String genre, String name, String publicationDate, int rating) {
         this.author = author;
         this.genre = genre;
         this.name = name;
@@ -31,7 +31,7 @@ public class Book {
         return publicationDate;
     }
 
-    public String getRating() {
+    public int getRating() {
         return rating;
     }
 }

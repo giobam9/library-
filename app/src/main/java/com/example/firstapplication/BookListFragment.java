@@ -1,27 +1,26 @@
 package com.example.firstapplication;
-import com.example.firstapplication.R;
+
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment; // Обратите внимание на этот импорт
-import androidx.fragment.app.FragmentTransaction;
+import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import java.util.List;
-import java.util.ArrayList;
+
 import org.json.JSONArray;
-import org.json.JSONObject;
 import org.json.JSONException;
-import android.util.Log;
-import java.net.URL;
-import java.net.HttpURLConnection;
+import org.json.JSONObject;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-
-
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 
 public class BookListFragment extends Fragment implements BookAdapter.OnBookClickListener {
     private List<Book> books = new ArrayList<>();
@@ -70,7 +69,6 @@ public class BookListFragment extends Fragment implements BookAdapter.OnBookClic
     }
 
     private void parseJson(String jsonString) {
-
         try {
             JSONArray jsonArray = new JSONArray(jsonString);
             for (int i = 0; i < jsonArray.length(); i++) {
@@ -79,22 +77,33 @@ public class BookListFragment extends Fragment implements BookAdapter.OnBookClic
                 String genre = bookObject.getString("Genre");
                 String name = bookObject.getString("Name");
                 String publicationDate = bookObject.getString("PublicationDate");
-                String rating = bookObject.getString("rating"); // Убедитесь, что это поле доступно в JSON
+                int rating = bookObject.getInt("rating");
 
                 Book book = new Book(author, genre, name, publicationDate, rating);
                 books.add(book);
 
                 // Логируем данные о каждой книге
-                Log.d("Book Info", "Author: " + author + ", Genre: " + genre + ", Name: " + name + ", PublicationDate: " + publicationDate + ", Rating: " + rating );
+                Log.d("Book Info", "Author: " + author + ", Genre: " + genre + ", Name: " + name + ", PublicationDate: " + publicationDate + ", Rating: " + rating);
             }
-            getActivity().runOnUiThread(() -> bookAdapter.notifyDataSetChanged()); // Обновляем адаптер
+            getActivity().runOnUiThread(() -> bookAdapter.notifyDataSetChanged());
         } catch (JSONException e) {
-            Log.d("BookListFragment", "Error parsing JSON", e);
+            Log.e("BookListFragment", "Error parsing JSON", e);
         }
     }
 
     @Override
     public void onBookClick(Book book) {
-        // Здесь можно реализовать логику для обработки клика на книгу
+        Fragment selectedBookFragment = SelectedBookFragment.newInstance(
+                book.getName(),
+                book.getAuthor(),
+                book.getGenre(),
+                book.getPublicationDate(),
+                book.getRating()
+        );
+
+        getActivity().getSupportFragmentManager().beginTransaction()
+                .replace(R.id.fragment_container, selectedBookFragment)
+                .addToBackStack(null)
+                .commit();
     }
 }
