@@ -7,6 +7,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -23,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BookListFragment extends Fragment implements BookAdapter.OnBookClickListener {
+
     private List<Book> books = new ArrayList<>();
     private BookAdapter bookAdapter;
     private RecyclerView recyclerView;
@@ -34,15 +36,32 @@ public class BookListFragment extends Fragment implements BookAdapter.OnBookClic
 
         recyclerView = view.findViewById(R.id.recycler_view);
         recyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
-        bookAdapter = new BookAdapter(books, this);
+
+        // Создаем адаптер с двумя слушателями
+        bookAdapter = new BookAdapter(books, this, this::onLongBookClick);
         recyclerView.setAdapter(bookAdapter);
 
-        // Начинаем асинхронный запрос
+        // Загружаем книги
+        loadBooksFromDatabase();
         fetchBooks();
 
         return view;
     }
 
+
+    /**
+     * Загружает книги из локальной базы данных.
+     */
+    private void loadBooksFromDatabase() {
+        DatabaseHelper dbHelper = new DatabaseHelper(getActivity());
+        books.clear();
+        books.addAll(dbHelper.getAllBooks());
+        bookAdapter.notifyDataSetChanged();
+    }
+
+    /**
+     * Загружает книги из удаленного источника.
+     */
     private void fetchBooks() {
         new Thread(() -> {
             try {
@@ -68,9 +87,13 @@ public class BookListFragment extends Fragment implements BookAdapter.OnBookClic
         }).start();
     }
 
+    /**
+     * Парсит JSON строку и добавляет книги в список.
+     */
     private void parseJson(String jsonString) {
         try {
             JSONArray jsonArray = new JSONArray(jsonString);
+            List<Book> parsedBooks = new ArrayList<>();
             for (int i = 0; i < jsonArray.length(); i++) {
                 JSONObject bookObject = jsonArray.getJSONObject(i);
                 String author = bookObject.getString("Author");
@@ -80,17 +103,27 @@ public class BookListFragment extends Fragment implements BookAdapter.OnBookClic
                 int rating = bookObject.getInt("rating");
 
                 Book book = new Book(author, genre, name, publicationDate, rating);
-                books.add(book);
-
-                // Логируем данные о каждой книге
-                Log.d("Book Info", "Author: " + author + ", Genre: " + genre + ", Name: " + name + ", PublicationDate: " + publicationDate + ", Rating: " + rating);
+                parsedBooks.add(book);
             }
-            getActivity().runOnUiThread(() -> bookAdapter.notifyDataSetChanged());
+
+            // Сохраняем книги в базу данных
+            DatabaseHelper dbHelper = new DatabaseHelper(getActivity());
+            dbHelper.insertBooksFromJson(parsedBooks);
+
+            // Обновляем данные в адаптере
+            getActivity().runOnUiThread(() -> {
+                books.clear();
+                books.addAll(parsedBooks);
+                bookAdapter.notifyDataSetChanged();
+            });
         } catch (JSONException e) {
             Log.e("BookListFragment", "Error parsing JSON", e);
         }
     }
 
+    /**
+     * Обрабатывает событие клика по книге.
+     */
     @Override
     public void onBookClick(Book book) {
         Fragment selectedBookFragment = SelectedBookFragment.newInstance(
@@ -105,5 +138,37 @@ public class BookListFragment extends Fragment implements BookAdapter.OnBookClic
                 .replace(R.id.fragment_container, selectedBookFragment)
                 .addToBackStack(null)
                 .commit();
+    }
+
+    /**
+     * Обрабатывает длительное нажатие на книгу.
+     */
+
+    public void onLongBookClick(Book book) {
+        showDialog(book);
+    }
+
+    /**
+     * Показывает диалоговое окно для взаимодействия с книгой.
+     */
+    private void showDialog(Book book) {
+        new AlertDialog.Builder(getActivity())
+                .setTitle("Выберите действие")
+                .setMessage("Книга: " + book.getName() + "\nАвтор: " + book.getAuthor())
+                .setPositiveButton("В избранное", (dialog, which) -> addToFavorites(book))
+                .setNegativeButton("Отмена", (dialog, which) -> dialog.dismiss())
+                .show();
+    }
+
+    /**
+     * Добавляет книгу в избранное.
+     */
+    private void addToFavorites(Book book) {
+        DatabaseHelper dbHelper = new DatabaseHelper(getActivity());
+        if (dbHelper.addToFavorites(book)) {
+            Log.i("BookListFragment", "Книга добавлена в избранное: " + book.getName());
+        } else {
+            Log.i("BookListFragment", "Книга уже в избранном: " + book.getName());
+        }
     }
 }

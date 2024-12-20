@@ -7,16 +7,21 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import java.util.List;
+
 public class BookAdapter extends RecyclerView.Adapter<BookAdapter.BookViewHolder> {
 
     private List<Book> books;
     private OnBookClickListener listener;
+    private OnBookLongClickListener longClickListener;
 
-    public BookAdapter(List<Book> books, OnBookClickListener listener) {
+    // Конструктор адаптера с двумя слушателями
+    public BookAdapter(List<Book> books, OnBookClickListener listener, OnBookLongClickListener longClickListener) {
         this.books = books;
         this.listener = listener;
+        this.longClickListener = longClickListener;
     }
 
+    // Создание нового ViewHolder
     @NonNull
     @Override
     public BookViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -24,28 +29,62 @@ public class BookAdapter extends RecyclerView.Adapter<BookAdapter.BookViewHolder
         return new BookViewHolder(view);
     }
 
+    // Привязка данных к элементу списка
     @Override
     public void onBindViewHolder(@NonNull BookViewHolder holder, int position) {
         Book book = books.get(position);
-        holder.textView.setText(book.getName()); // Устанавливаем название книги
-        holder.itemView.setOnClickListener(v -> listener.onBookClick(book));
+        holder.bind(book);
+
+        // Обработка клика
+        holder.itemView.setOnClickListener(v -> {
+            int pos = holder.getAdapterPosition();
+            if (pos != RecyclerView.NO_POSITION) {
+                listener.onBookClick(books.get(pos));
+            }
+        });
+
+        // Обработка долгого нажатия
+        holder.itemView.setOnLongClickListener(v -> {
+            if (longClickListener != null) {
+                longClickListener.onBookLongClick(book);
+                return true; // Событие обработано
+            }
+            return false; // Передача события дальше
+        });
     }
 
+    // Возвращаем количество элементов в списке
     @Override
     public int getItemCount() {
         return books.size();
     }
 
+    // Интерфейсы для обработки кликов
     public interface OnBookClickListener {
         void onBookClick(Book book);
     }
 
-    public static class BookViewHolder extends RecyclerView.ViewHolder {
-        TextView textView;
+    public interface OnBookLongClickListener {
+        void onBookLongClick(Book book);
+    }
+
+    // ViewHolder для элемента списка
+    public class BookViewHolder extends RecyclerView.ViewHolder {
+        private final TextView titleTextView;
+        private final TextView authorTextView;
+        private final TextView genreTextView;
 
         public BookViewHolder(@NonNull View itemView) {
             super(itemView);
-            textView = itemView.findViewById(R.id.bookTitleTextView); // Убедитесь, что это правильный ID
+            titleTextView = itemView.findViewById(R.id.bookTitleTextView);
+            authorTextView = itemView.findViewById(R.id.bookAuthorTextView);
+            genreTextView = itemView.findViewById(R.id.bookGenreTextView);
+        }
+
+        public void bind(Book book) {
+            titleTextView.setText(book.getName());
+            authorTextView.setText(book.getAuthor());
+            genreTextView.setText(book.getGenre());
         }
     }
 }
